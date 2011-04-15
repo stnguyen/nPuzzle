@@ -3,3 +3,4 @@ obj
 *.swp
 *.layout
 main*
+*.depend
