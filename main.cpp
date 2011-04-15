@@ -25,13 +25,12 @@ using namespace std;
  *  Description:  A puzzle state
  * =====================================================================================
  */
-class State {
+class State
+{
 
   /* ===================== VARIABLES ===================== */
-  private:
-    vector<int> m_tiles;
-
   public:
+    vector<int> m_tiles;
     int m_n;   // size of the puzzle
     enum Move {MOVE_UP = -1, MOVE_DOWN = 1, MOVE_LEFT = -2, MOVE_RIGHT = 2};
 
@@ -104,14 +103,14 @@ class State {
         vector<int> tiles = m_tiles;
 
         if (MoveBlankTile(move, tiles))
-            successors.push_back(State(m_n, &tiles));
+            successors.push_back(State(m_n, tiles));
     }	/* -----  end of function AddSuccessor  ----- */
 
   public:
 
-    State(int n, vector<int>* tiles)
+    State(int n, const vector<int>& tiles)
     {
-        m_tiles = *tiles;
+        m_tiles = tiles;
         m_n = n;
         cout << "New State(n,*tiles)" << endl;
     };
@@ -123,6 +122,7 @@ class State {
         cout << "New State(State&)" << endl;
     }
 
+    State(int n)
 
     /*
      * ===  FUNCTION  ======================================================================
@@ -177,54 +177,102 @@ class State {
  *                components such as Action, Parent Node are ommited to save memory.
  * =====================================================================================
  */
-class Node {
-  private:
+class Node
+{
+  public:
     State* m_state;
     int    m_pathCost;  // also is the depth of the node
 
-  public:
+    Node()
+    {
+        cout << "Node()" << endl;
+    }
 
     Node(State* state, int pathCost)
     {
+        cout << "Node(State* state, int pathCost)" << endl;
         m_state = state;
         m_pathCost = pathCost;
     }
 
+};
 
+/*
+ * =====================================================================================
+ *        Class:  AStarSearch
+ *  Description:  Solve the puzzle using a star search
+ * =====================================================================================
+ */
+class AStarSearch
+{
+  private:
+    Node* m_init;
+    Node* m_goal;
+    int m_n;
+    int m_k;
+
+  private:
+
+    /*
+     * ===  FUNCTION  ======================================================================
+     *         Name:  Input
+     *  Description:  Read input file
+     * =====================================================================================
+     */
+    void Input(char* filename)
+    {
+        cout << "=========== Reading file: " << filename << "..." << endl;
+
+        int tile;
+        vector<int> init, goal;
+        ifstream fin(filename);
+
+        // read n, k
+        fin >> m_n;
+        fin >> m_k;
+        cout << "n = " << m_n << ", k = " << m_k << endl;
+
+        // read init state
+        for (int i =0; i < m_n*m_n; i++)
+        {
+            fin >> tile;
+            init.push_back(tile);
+        }
+        m_init = State(m_n, init);
+
+        // ignore a line
+        fin >> tile;
+
+        // read goal state
+        for (int i =0; i < m_n*m_n; i++)
+        {
+            fin >> tile;
+            goal.push_back(tile);
+        }
+        m_goal = State(m_n, goal);
+
+        fin.close();
+
+        cout << "============ Finish reading file!" << endl;
+    }   /* -----  end of function Input  ----- */
+
+  public:
+
+    AStarSearch(char* filename)
+    {
+        m_goal = new Node(State());
+        Input(filename);
+        m_initState.Print();
+        m_goalState.Print();
+    }
 };
 
 
-
-void Input(char* filename, vector<int>* tiles, int& n, int& h)
-{
-    cout << "Reading file: " << filename << "..." << endl;
-    int tile;
-    ifstream fin(filename);
-    fin >> n;
-    fin >> h;
-    cout << "n = " << n << ", h = " << h << endl;
-
-
-    for (int i =0; i < n*n; i++)
-    {
-        fin >> tile;
-        tiles->push_back(tile);
-    }
-    fin.close();
-    cout << "Finish reading file!" << endl;
-}
-
 int main()
 {
-    vector<int> tiles;
-    int n, h;
-    Input("input", &tiles, n, h);
+    AStarSearch as = AStarSearch("input");
 
-    /* TEST State class */
-    State s1(n, &tiles);
-    cout << "s1 ";
-    s1.Print();
-
+    /*
     vector<State> successors;
     s1.GenerateSuccessors(successors);
     for (int i = 0; i < successors.size(); i++)
@@ -241,7 +289,7 @@ int main()
     {
         cout << "Successor: ";
         successors[i].Print();
-    }
+    }*/
 
     return 0;
 }
