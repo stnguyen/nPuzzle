@@ -16,6 +16,7 @@
 #include <iostream>
 #include <vector>
 #include <fstream>
+#include <cmath>
 
 using namespace std;
 
@@ -29,9 +30,11 @@ class State
 {
 
   /* ===================== VARIABLES ===================== */
-  public:
+  private:
     vector<int> m_tiles;
     int m_n;   // size of the puzzle
+
+  public:
     enum Move {MOVE_UP = -1, MOVE_DOWN = 1, MOVE_LEFT = -2, MOVE_RIGHT = 2};
 
   /* ===================== METHODS ===================== */
@@ -108,21 +111,26 @@ class State
 
   public:
 
-    State(int n, const vector<int>& tiles)
+    void SetTiles(const vector<int>& tiles)
     {
         m_tiles = tiles;
+    }
+
+    State(int n, const vector<int>& tiles)
+    {
         m_n = n;
-        cout << "New State(n,*tiles)" << endl;
+        SetTiles(tiles);
+        cout << "New State(const vector<int>& tiles)" << endl;
     };
 
     State(const State& state)
     {
         m_n = state.m_n;
-        m_tiles = state.m_tiles;
+        SetTiles(state.m_tiles);
         cout << "New State(State&)" << endl;
     }
 
-    State(int n)
+    State(int n){m_n = n;}
 
     /*
      * ===  FUNCTION  ======================================================================
@@ -195,6 +203,12 @@ class Node
         m_pathCost = pathCost;
     }
 
+    ~Node()
+    {
+        delete m_state;
+        cout << "deleted a state" << endl;
+    }
+
 };
 
 /*
@@ -206,8 +220,9 @@ class Node
 class AStarSearch
 {
   private:
-    Node* m_init;
-    Node* m_goal;
+    State* m_goalState;
+    vector<Node> openNodes;
+    vector<Node> closedNodes;
     int m_n;
     int m_k;
 
@@ -224,7 +239,7 @@ class AStarSearch
         cout << "=========== Reading file: " << filename << "..." << endl;
 
         int tile;
-        vector<int> init, goal;
+        vector<int> initTiles, goalTiles;
         ifstream fin(filename);
 
         // read n, k
@@ -236,21 +251,18 @@ class AStarSearch
         for (int i =0; i < m_n*m_n; i++)
         {
             fin >> tile;
-            init.push_back(tile);
+            initTiles.push_back(tile);
         }
-        m_init = State(m_n, init);
+        openNodes.push_back(Node(new State(m_n, initTiles), 0));
 
-        // ignore a line
-        fin >> tile;
-
-        // read goal state
+        /* read goal state
         for (int i =0; i < m_n*m_n; i++)
         {
             fin >> tile;
-            goal.push_back(tile);
+            goalTiles.push_back(tile);
         }
-        m_goal = State(m_n, goal);
-
+        m_goalState = new State(m_n, goalTiles);
+        */
         fin.close();
 
         cout << "============ Finish reading file!" << endl;
@@ -260,10 +272,10 @@ class AStarSearch
 
     AStarSearch(char* filename)
     {
-        m_goal = new Node(State());
         Input(filename);
-        m_initState.Print();
-        m_goalState.Print();
+       // m_goalState->Print();
+
+        openNodes[0].m_state->Print();
     }
 };
 
@@ -291,5 +303,6 @@ int main()
         successors[i].Print();
     }*/
 
+    cout << "=== GOODBYE ===" << endl;
     return 0;
 }
