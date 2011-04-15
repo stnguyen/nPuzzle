@@ -22,6 +22,7 @@
 using namespace std;
 
 int g_k;
+int g_n;
 
 /*
  * =====================================================================================
@@ -35,7 +36,6 @@ class State
   /* ===================== VARIABLES ===================== */
   public:
     vector<int> m_tiles;
-    int m_n;   // size of the puzzle
     enum Move {MOVE_UP = -1, MOVE_DOWN = 1, MOVE_LEFT = -2, MOVE_RIGHT = 2};
 
   /* ===================== METHODS ===================== */
@@ -49,7 +49,7 @@ class State
      */
     bool IsValidTile ( int pos )
     {
-        if (pos >= 0 && pos < m_n*m_n)
+        if (pos >= 0 && pos < g_n*g_n)
             return true;
         return false;
     }	/* -----  end of function IsValidTile  ----- */
@@ -62,7 +62,7 @@ class State
      */
     int GetBlankTilePosition ( )
     {
-        for (int i = 0; i < m_n*m_n; i++)
+        for (int i = 0; i < g_n*g_n; i++)
         if (m_tiles[i] == 0)
             return i;
     }	/* -----  end of function GetBlankTilePosition  ----- */
@@ -81,7 +81,7 @@ class State
 
         // new blank tile position
         if (move == MOVE_UP || move == MOVE_DOWN)
-            newPos = blankPos + move*m_n;
+            newPos = blankPos + move*g_n;
         else // move MOVE_LEFT or MOVE_RIGHT
             newPos = blankPos + move/2;
 
@@ -106,14 +106,13 @@ class State
     {
         vector<int> tiles = m_tiles;
         if (MoveBlankTile(move, tiles))
-            successors.push_back(new State(m_n, tiles));
+            successors.push_back(new State(tiles));
     }	/* -----  end of function AddSuccessor  ----- */
 
   public:
 
-    State(int n, const vector<int>& tiles)
+    State(const vector<int>& tiles)
     {
-        m_n = n;
         m_tiles = tiles;
         //cout << "=== New State(const vector<int>& tiles)" << endl;
         //Print();
@@ -121,7 +120,6 @@ class State
 
     State(const State& state)
     {
-        m_n = state.m_n;
         m_tiles = state.m_tiles;
        // cout << "=== New State(State&)" << endl;
         //Print();
@@ -163,7 +161,7 @@ class State
     {
         for (int i = 0; i < m_tiles.size(); i++)
         {
-            if (i % m_n == 0)
+            if (i % g_n == 0)
                 cout << endl;
             cout << m_tiles[i] << " ";
         }
@@ -202,7 +200,7 @@ class State
                 for (int j = 0; j < goalState.m_tiles.size(); j++)
                     if (m_tiles[i] == goalState.m_tiles[j])
                     {
-                        h += abs(float(i%m_n - j%m_n)) + abs(float(i/m_n - j/m_n));
+                        h += abs(float(i%g_n - j%g_n)) + abs(float(i/g_n - j/g_n));
                         break;
                     }
 
@@ -217,17 +215,7 @@ class State
      */
     int HCustom(const State& goalState)
     {
-        int h = 0;
-        for (int i = 0; i < m_tiles.size(); i++)
-            if (m_tiles[i] != goalState.m_tiles[i])
-                for (int j = 0; j < goalState.m_tiles.size(); j++)
-                    if (m_tiles[i] == goalState.m_tiles[j])
-                    {
-                        h += abs(float(i%m_n - j%m_n)) + abs(float(i/m_n - j/m_n));
-                        break;
-                    }
 
-        return h;
     }
 
     int H(const State& goalState)
@@ -284,7 +272,6 @@ class AStarSearch
     State m_goalState;
     vector<Node*> m_openNodes;
     vector<Node*> m_closedNodes;
-    int m_n;
     int m_states;   // states count
 
   private:
@@ -315,27 +302,27 @@ class AStarSearch
         Node* startNode;
 
         // read n, k
-        fin >> m_n;
+        fin >> g_n;
         fin >> g_k;
-        cout << "n = " << m_n << ", k = " << g_k << endl;
+        cout << "n = " << g_n << ", k = " << g_k << endl;
 
         // read init state
-        for (int i =0; i < m_n*m_n; i++)
+        for (int i =0; i < g_n*g_n; i++)
         {
             fin >> tile;
             initTiles.push_back(tile);
         }
 
         // read goal state
-        for (int i =0; i < m_n*m_n; i++)
+        for (int i =0; i < g_n*g_n; i++)
         {
             fin >> tile;
             goalTiles.push_back(tile);
         }
 
-        m_goalState = State(m_n, goalTiles);
+        m_goalState = State(goalTiles);
 
-        startNode = new Node(State(m_n, initTiles), 0);
+        startNode = new Node(State(initTiles), 0);
         m_states = 0;
         startNode->ComputeF(m_goalState);
         m_openNodes.push_back(startNode);
@@ -475,7 +462,6 @@ class AStarSearch
             }
 
             m_closedNodes.push_back(bestNode);
-            return false;
         }
 
         return false;
