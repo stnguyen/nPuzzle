@@ -100,12 +100,11 @@ class State
      *  Description:  Add the generated successor by moving blank tile to the given vector
      * =====================================================================================
      */
-    void AddSuccessor ( vector<State>& successors, Move move )
+    void AddSuccessor ( vector<State*>& successors, Move move )
     {
         vector<int> tiles = m_tiles;
-
         if (MoveBlankTile(move, tiles))
-            successors.push_back(State(m_n, tiles));
+            successors.push_back(new State(m_n, tiles));
     }	/* -----  end of function AddSuccessor  ----- */
 
   public:
@@ -114,14 +113,16 @@ class State
     {
         m_n = n;
         m_tiles = tiles;
-        cout << "New State(const vector<int>& tiles)" << endl;
+        cout << "=== New State(const vector<int>& tiles)" << endl;
+        Print();
     };
 
     State(const State& state)
     {
         m_n = state.m_n;
         m_tiles = state.m_tiles;
-        cout << "New State(State&)" << endl;
+        cout << "=== New State(State&)" << endl;
+        Print();
     }
 
     State(){}
@@ -146,19 +147,23 @@ class State
      *  Description:  Generate all valid successors form this node
      * =====================================================================================
      */
-    void GenerateSuccessors (vector<State>& successors)
+    void GenerateSuccessors (vector<State*>& successors)
     {
         successors.clear();
         // try 4 moves and get all possible succesors
+        cout << "------ MOVING UP -----" << endl;
         AddSuccessor(successors, MOVE_UP);
+        cout << "------ MOVING DOWN -----" << endl;
         AddSuccessor(successors, MOVE_DOWN);
+        cout << "------ MOVING LEFT -----" << endl;
         AddSuccessor(successors, MOVE_LEFT);
+        cout << "------ MOVING RIGHT -----" << endl;
         AddSuccessor(successors, MOVE_RIGHT);
+        cout << "------ FINISH GENERATING SUCCESSORS -----" << endl;
     }	/* -----  end of function GenerateSuccessors  ----- */
 
     void Print() const
     {
-        cout << "State: ";
         for (int i = 0; i < m_tiles.size(); i++)
         {
             if (i % m_n == 0)
@@ -252,11 +257,6 @@ class Node
     int   m_pathCost;  // also is the depth of the node
     int   m_f;
 
-    Node()
-    {
-        cout << "New Node()" << endl;
-    }
-
     Node(State state, int pathCost)
     {
         cout << "New Node(State state, int pathCost)" << endl;
@@ -317,40 +317,32 @@ class AStarSearch
         fin >> m_k;
         cout << "n = " << m_n << ", k = " << m_k << endl;
 
-        // read goal state
-        for (int i =0; i < m_n*m_n; i++)
-        {
-            fin >> tile;
-            goalTiles.push_back(tile);
-        }
-        m_goalState = State(m_n, goalTiles);
-
         // read init state
         for (int i =0; i < m_n*m_n; i++)
         {
             fin >> tile;
             initTiles.push_back(tile);
         }
+
+        // read goal state
+        for (int i =0; i < m_n*m_n; i++)
+        {
+            fin >> tile;
+            goalTiles.push_back(tile);
+        }
+
+        m_goalState = State(m_n, goalTiles);
+
         startNode = new Node(State(m_n, initTiles), 0);
         startNode->ComputeF(m_goalState);
         m_openNodes.push_back(startNode);
         // sort to make a heap
         push_heap(m_openNodes.begin(), m_openNodes.end(), HeapCompare_f());
 
-
         fin.close();
 
         cout << "============ Finish reading file!" << endl;
     }   /* -----  end of function Input  ----- */
-
-    Node* IsExistedIn(State& state, const vector<Node*>& list)
-    {
-        for (int i = 0; i < list.size(); i++)
-            if (state.IsSameState(list[i]->m_state))
-                return list[i];
-
-        return NULL;
-    }
 
   public:
 
@@ -393,12 +385,16 @@ class AStarSearch
     {
         cout << "=========== Solving ===========" << endl;
 
-        vector<State> successors;
-        Node* existed;
+        vector<State*> successors;
+        vector<Node*>::iterator existedInOpen;
+        vector<Node*>::iterator existedInClosed;
         Node* newNode;
+        int newPathCost;
 
         while(!m_openNodes.empty())
         {
+            for (int i = 0; i < successors.size(); i++)
+                delete successors[i];
             successors.clear();
 
             // get the node with the lowest F() value
@@ -411,20 +407,67 @@ class AStarSearch
                 return true;
 
             // ...if not
-
-            // generate its successors
+            newPathCost = bestNode->m_pathCost+1;
+            // generate its successor States
             bestNode->m_state.GenerateSuccessors(successors);
+            bestNode->m_state.Print();
+            cout << "Number of successors: " << successors.size() << endl;
+            // check each successor State
             for (int i = 0; i < successors.size(); i++)
             {
-                newNode = new Node(successors[i],bestNode->m_pathCost+1);
-                newNode->ComputeF(m_goalState);
-                // is it existed in m_openNodes?
-                existed = IsExistedIn(successors[i], m_openNodes);
-                if (existed != NULL)
+                successors[i]->Print();
+                // is it existed in m_openNodes ?
+                for( existedInOpen = m_openNodes.begin(); existedInOpen != m_openNodes.end(); existedInOpen ++ )
+                    if (successors[i]->IsSameState((*existedInOpen)->m_state)) break;
+                if (existedInOpen != m_openNodes.end())
                 {
-                    //if (existed->m_f > newNode->m_f)
+                    // is the existed one better ?
+                    if ((*existedInOpen)->m_pathCost <= newPathCost)
+                    {
+                        // yeah, the existed one is better, let's ignore this State
+                        delete newNode;
+                        continue;
+                    }
                 }
+
+                // is it existed in m_closedNodes ?
+                for( existedInClosed = m_openNodes.begin(); existedInClosed != m_openNodes.end(); existedInClosed ++ )
+                    if (successors[i]->IsSameState((*existedInClosed)->m_state)) break;
+                if (existedInClosed != m_openNodes.end())
+                {
+                    // is the existed one better ?
+                    if ((*existedInClosed)->m_pathCost <= newPathCost)
+                    {
+                        // yeah, the existed one is better, let's ignore this State
+                        delete newNode;
+                        continue;
+                    }
+                    else
+                    {
+                        delete (*existedInClosed);
+                        m_closedNodes.erase(existedInClosed);
+                    }
+                }
+
+                // remove existing Nodes that are worse
+                if ((*existedInOpen)->m_pathCost <= newPathCost)
+                {
+                    delete (*existedInOpen);
+                    m_openNodes.erase(existedInOpen);
+                    make_heap(m_openNodes.begin(), m_openNodes.end(), HeapCompare_f());
+                }
+
+                // generate a Node with the corresponding State
+                newNode = new Node(*successors[i],bestNode->m_pathCost+1);
+                newNode->ComputeF(m_goalState);
+                // newNode is the best so far compare to those having the same State
+                // add it to m_openNodes
+                m_openNodes.push_back(newNode);
+                // sort to remain the heap
+                push_heap(m_openNodes.begin(), m_openNodes.end(), HeapCompare_f());
             }
+
+            m_closedNodes.push_back(bestNode);
         }
 
         return false;
@@ -436,7 +479,8 @@ class AStarSearch
 int main()
 {
     AStarSearch as = AStarSearch("input");
-    as.m_goalState.Print();
+    cout << "START STATE:";
+    as.m_openNodes.front()->m_state.Print();
     as.Solve();
 
 
