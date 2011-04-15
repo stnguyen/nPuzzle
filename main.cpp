@@ -403,9 +403,6 @@ class AStarSearch
             pop_heap( m_openNodes.begin(), m_openNodes.end(), HeapCompare_f() );
             m_openNodes.pop_back();
 
-            cout << "====== WORKING WITH STATE =======" << endl;
-            bestNode->m_state.Print();
-
             // is it the goal node?...
             if (bestNode->m_state.IsSameState(m_goalState))
             {
@@ -419,11 +416,10 @@ class AStarSearch
             newPathCost = bestNode->m_pathCost+1;
             // generate its successor States
             bestNode->m_state.GenerateSuccessors(successors);
-            cout << "Number of successors: " << successors.size() << endl;
+
             // check each successor State
             for (int i = 0; i < successors.size(); i++)
             {
-                successors[i]->Print();
                 // is it existed in m_openNodes ?
                 for( existedInOpen = m_openNodes.begin(); existedInOpen != m_openNodes.end(); existedInOpen ++ )
                     if (successors[i]->IsSameState((*existedInOpen)->m_state)) break;
@@ -474,12 +470,12 @@ class AStarSearch
                 m_states++;
                 // sort to remain the heap
                 push_heap(m_openNodes.begin(), m_openNodes.end(), HeapCompare_f());
+
+                cout << "# states: " << m_states << endl;
             }
 
             m_closedNodes.push_back(bestNode);
-
-            cout << "------------ # open nodes: " << m_openNodes.size() << endl;
-            cout << "------------ # closed nodes: " << m_closedNodes.size() << endl;
+            return false;
         }
 
         return false;
