@@ -229,6 +229,11 @@ class State
 
         return h;
     }
+
+    int H(const State& goalState)
+    {
+        return HManhattanDistance(goalState);
+    }
 };
 
 /*
@@ -257,7 +262,10 @@ class Node
         m_pathCost = pathCost;
     }
 
-
+    int F(const State& goalState)
+    {
+        return m_pathCost + m_state.H(goalState);
+    }
 };
 
 /*
@@ -375,7 +383,7 @@ class AStarSearch
 int main()
 {
     AStarSearch as = AStarSearch("input");
-    cout << as.m_openNodes[0]->m_state.HManhattanDistance(*as.m_goalState) << endl;
+    cout << as.m_openNodes[0]->F(*as.m_goalState) << endl;
 
     cout << "=== GOODBYE ===" << endl;
     return 0;
