@@ -111,7 +111,7 @@ class State
 
   public:
 
-    State(const vector<int>& tiles)
+    State(const vector<int>& tiles):
     {
         m_tiles = tiles;
         //cout << "=== New State(const vector<int>& tiles)" << endl;
