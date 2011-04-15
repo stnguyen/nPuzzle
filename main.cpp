@@ -30,11 +30,9 @@ class State
 {
 
   /* ===================== VARIABLES ===================== */
-  private:
+  public:
     vector<int> m_tiles;
     int m_n;   // size of the puzzle
-
-  public:
     enum Move {MOVE_UP = -1, MOVE_DOWN = 1, MOVE_LEFT = -2, MOVE_RIGHT = 2};
 
   /* ===================== METHODS ===================== */
@@ -111,26 +109,21 @@ class State
 
   public:
 
-    void SetTiles(const vector<int>& tiles)
-    {
-        m_tiles = tiles;
-    }
-
     State(int n, const vector<int>& tiles)
     {
         m_n = n;
-        SetTiles(tiles);
+        m_tiles = tiles;
         cout << "New State(const vector<int>& tiles)" << endl;
     };
 
     State(const State& state)
     {
         m_n = state.m_n;
-        SetTiles(state.m_tiles);
+        m_tiles = state.m_tiles;
         cout << "New State(State&)" << endl;
     }
 
-    State(int n){m_n = n;}
+    State(){}
 
     /*
      * ===  FUNCTION  ======================================================================
@@ -162,7 +155,7 @@ class State
         AddSuccessor(successors, MOVE_RIGHT);
     }	/* -----  end of function GenerateSuccessors  ----- */
 
-    void Print()
+    void Print() const
     {
         cout << "State: ";
         for (int i = 0; i < m_tiles.size(); i++)
@@ -175,6 +168,67 @@ class State
         cout << endl;
     }
 
+    /*
+     * ===  FUNCTION  ======================================================================
+     *         Name:  HMisplacedTiles
+     *  Description:  Calculate heuristic = the number of misplaced tiles
+     * =====================================================================================
+     */
+    int HMisplacedTiles(const State& goalState)
+    {
+        Print();
+        int h = 0;
+        for (int i = 0; i < m_tiles.size(); i++)
+            if (m_tiles[i] != goalState.m_tiles[i])
+                h++;
+
+        return h;
+    }
+
+    /*
+     * ===  FUNCTION  ======================================================================
+     *         Name:  HManhattanDistance
+     *  Description:  Calculate heuristic = the sum of the distances of the tiles
+     *                from their goal positions
+     * =====================================================================================
+     */
+    int HManhattanDistance(const State& goalState)
+    {
+        Print();
+        int h = 0;
+        for (int i = 0; i < m_tiles.size(); i++)
+            if (m_tiles[i] != goalState.m_tiles[i])
+                for (int j = 0; j < goalState.m_tiles.size(); j++)
+                    if (m_tiles[i] == goalState.m_tiles[j])
+                    {
+                        h += abs(float(i%m_n - j%m_n)) + abs(float(i/m_n - j/m_n));
+                        break;
+                    }
+
+        return h;
+    }
+
+    /*
+     * ===  FUNCTION  ======================================================================
+     *         Name:  HCustom
+     *  Description:  Calculate heuristic = ...
+     * =====================================================================================
+     */
+    int HCustom(const State& goalState)
+    {
+        Print();
+        int h = 0;
+        for (int i = 0; i < m_tiles.size(); i++)
+            if (m_tiles[i] != goalState.m_tiles[i])
+                for (int j = 0; j < goalState.m_tiles.size(); j++)
+                    if (m_tiles[i] == goalState.m_tiles[j])
+                    {
+                        h += abs(float(i%m_n - j%m_n)) + abs(float(i/m_n - j/m_n));
+                        break;
+                    }
+
+        return h;
+    }
 };
 
 /*
@@ -188,26 +242,21 @@ class State
 class Node
 {
   public:
-    State* m_state;
-    int    m_pathCost;  // also is the depth of the node
+    State m_state;
+    int   m_pathCost;  // also is the depth of the node
 
     Node()
     {
-        cout << "Node()" << endl;
+        cout << "New Node()" << endl;
     }
 
-    Node(State* state, int pathCost)
+    Node(State state, int pathCost)
     {
-        cout << "Node(State* state, int pathCost)" << endl;
+        cout << "New Node(State state, int pathCost)" << endl;
         m_state = state;
         m_pathCost = pathCost;
     }
 
-    ~Node()
-    {
-        delete m_state;
-        cout << "deleted a state" << endl;
-    }
 
 };
 
@@ -219,10 +268,10 @@ class Node
  */
 class AStarSearch
 {
-  private:
+  public:
     State* m_goalState;
-    vector<Node> openNodes;
-    vector<Node> closedNodes;
+    vector<Node*> m_openNodes;
+    vector<Node*> m_closedNodes;
     int m_n;
     int m_k;
 
@@ -253,16 +302,16 @@ class AStarSearch
             fin >> tile;
             initTiles.push_back(tile);
         }
-        openNodes.push_back(Node(new State(m_n, initTiles), 0));
+        m_openNodes.push_back(new Node(State(m_n, initTiles), 0));
 
-        /* read goal state
+        // read goal state
         for (int i =0; i < m_n*m_n; i++)
         {
             fin >> tile;
             goalTiles.push_back(tile);
         }
         m_goalState = new State(m_n, goalTiles);
-        */
+
         fin.close();
 
         cout << "============ Finish reading file!" << endl;
@@ -273,35 +322,60 @@ class AStarSearch
     AStarSearch(char* filename)
     {
         Input(filename);
-       // m_goalState->Print();
+        //m_goalState->Print();
 
-        openNodes[0].m_state->Print();
+        //m_openNodes[0]->m_state.Print();
     }
+
+    ~AStarSearch()
+    {
+        cout << "Deleting open nodes" << endl;
+        for (int i = 0; i < m_openNodes.size(); i++)
+        {
+            cout << "   - delete node #" << i << endl;
+            delete m_openNodes[i];
+        }
+
+        m_openNodes.clear();
+
+        cout << "Deleting closed nodes" << endl;
+        for (int i = 0; i < m_closedNodes.size(); i++)
+        {
+            cout << "delete node #" << i << endl;
+            delete m_closedNodes[i];
+        }
+        m_openNodes.clear();
+
+        cout << "Deleting goal state" << endl;
+        delete m_goalState;
+    }
+
+    /*
+     * ===  FUNCTION  ======================================================================
+     *         Name:  Solve
+     *  Description:  Solve the puzzle using A* searching algorithm
+     *                Return true if found a solution, false otherwise
+     * =====================================================================================
+     */
+    bool Solve()
+    {
+        cout << "=========== Solving ===========" << endl;
+
+        while(!m_openNodes.empty())
+        {
+
+        }
+
+        return false;
+        cout << "=========== Finished Solving ===========" << endl;
+    }   /* -----  end of function Solve  ----- */
 };
 
 
 int main()
 {
     AStarSearch as = AStarSearch("input");
-
-    /*
-    vector<State> successors;
-    s1.GenerateSuccessors(successors);
-    for (int i = 0; i < successors.size(); i++)
-    {
-        cout << "Successor: ";
-        successors[i].Print();
-    }
-
-    s1 = successors[0];
-    cout << "s1 ";
-    s1.Print();
-    s1.GenerateSuccessors(successors);
-    for (int i = 0; i < successors.size(); i++)
-    {
-        cout << "Successor: ";
-        successors[i].Print();
-    }*/
+    cout << as.m_openNodes[0]->m_state.HManhattanDistance(*as.m_goalState) << endl;
 
     cout << "=== GOODBYE ===" << endl;
     return 0;
