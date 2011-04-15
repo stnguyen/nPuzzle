@@ -21,6 +21,8 @@
 
 using namespace std;
 
+int g_k;
+
 /*
  * =====================================================================================
  *        Class:  State
@@ -113,16 +115,16 @@ class State
     {
         m_n = n;
         m_tiles = tiles;
-        cout << "=== New State(const vector<int>& tiles)" << endl;
-        Print();
+        //cout << "=== New State(const vector<int>& tiles)" << endl;
+        //Print();
     };
 
     State(const State& state)
     {
         m_n = state.m_n;
         m_tiles = state.m_tiles;
-        cout << "=== New State(State&)" << endl;
-        Print();
+       // cout << "=== New State(State&)" << endl;
+        //Print();
     }
 
     State(){}
@@ -151,15 +153,10 @@ class State
     {
         successors.clear();
         // try 4 moves and get all possible succesors
-        cout << "------ MOVING UP -----" << endl;
         AddSuccessor(successors, MOVE_UP);
-        cout << "------ MOVING DOWN -----" << endl;
         AddSuccessor(successors, MOVE_DOWN);
-        cout << "------ MOVING LEFT -----" << endl;
         AddSuccessor(successors, MOVE_LEFT);
-        cout << "------ MOVING RIGHT -----" << endl;
         AddSuccessor(successors, MOVE_RIGHT);
-        cout << "------ FINISH GENERATING SUCCESSORS -----" << endl;
     }	/* -----  end of function GenerateSuccessors  ----- */
 
     void Print() const
@@ -235,7 +232,12 @@ class State
 
     int H(const State& goalState)
     {
-        return HManhattanDistance(goalState);
+        if (g_k == 1)
+            return HMisplacedTiles(goalState);
+        else if (g_k == 2)
+            return HManhattanDistance(goalState);
+        else
+            return HCustom(goalState);
     }
 };
 
@@ -259,7 +261,7 @@ class Node
 
     Node(State state, int pathCost)
     {
-        cout << "New Node(State state, int pathCost)" << endl;
+        //cout << "New Node(State state, int pathCost)" << endl;
         m_state = state;
         m_pathCost = pathCost;
     }
@@ -283,7 +285,7 @@ class AStarSearch
     vector<Node*> m_openNodes;
     vector<Node*> m_closedNodes;
     int m_n;
-    int m_k;
+    int m_states;   // states count
 
   private:
 
@@ -314,8 +316,8 @@ class AStarSearch
 
         // read n, k
         fin >> m_n;
-        fin >> m_k;
-        cout << "n = " << m_n << ", k = " << m_k << endl;
+        fin >> g_k;
+        cout << "n = " << m_n << ", k = " << g_k << endl;
 
         // read init state
         for (int i =0; i < m_n*m_n; i++)
@@ -334,6 +336,7 @@ class AStarSearch
         m_goalState = State(m_n, goalTiles);
 
         startNode = new Node(State(m_n, initTiles), 0);
+        m_states = 0;
         startNode->ComputeF(m_goalState);
         m_openNodes.push_back(startNode);
         // sort to make a heap
@@ -356,19 +359,17 @@ class AStarSearch
 
     ~AStarSearch()
     {
-        cout << "Deleting open nodes" << endl;
+        cout << "Deleting " << m_openNodes.size() << " open nodes" << endl;
         for (int i = 0; i < m_openNodes.size(); i++)
         {
-            cout << "   - delete node #" << i << endl;
             delete m_openNodes[i];
         }
 
         m_openNodes.clear();
 
-        cout << "Deleting closed nodes" << endl;
+        cout << "Deleting " << m_closedNodes.size() << " closed nodes" << endl;
         for (int i = 0; i < m_closedNodes.size(); i++)
         {
-            cout << "delete node #" << i << endl;
             delete m_closedNodes[i];
         }
         m_openNodes.clear();
@@ -402,15 +403,22 @@ class AStarSearch
             pop_heap( m_openNodes.begin(), m_openNodes.end(), HeapCompare_f() );
             m_openNodes.pop_back();
 
+            cout << "====== WORKING WITH STATE =======" << endl;
+            bestNode->m_state.Print();
+
             // is it the goal node?...
             if (bestNode->m_state.IsSameState(m_goalState))
+            {
+                cout << "FOUND!!!!! HURRAAA :D" << endl;
+                cout << bestNode->m_pathCost << " " << m_states << endl;
                 return true;
+            }
 
             // ...if not
+
             newPathCost = bestNode->m_pathCost+1;
             // generate its successor States
             bestNode->m_state.GenerateSuccessors(successors);
-            bestNode->m_state.Print();
             cout << "Number of successors: " << successors.size() << endl;
             // check each successor State
             for (int i = 0; i < successors.size(); i++)
@@ -425,21 +433,21 @@ class AStarSearch
                     if ((*existedInOpen)->m_pathCost <= newPathCost)
                     {
                         // yeah, the existed one is better, let's ignore this State
-                        delete newNode;
+
                         continue;
                     }
                 }
 
                 // is it existed in m_closedNodes ?
-                for( existedInClosed = m_openNodes.begin(); existedInClosed != m_openNodes.end(); existedInClosed ++ )
+                for( existedInClosed = m_closedNodes.begin(); existedInClosed != m_closedNodes.end(); existedInClosed ++ )
                     if (successors[i]->IsSameState((*existedInClosed)->m_state)) break;
-                if (existedInClosed != m_openNodes.end())
+                if (existedInClosed != m_closedNodes.end())
                 {
                     // is the existed one better ?
                     if ((*existedInClosed)->m_pathCost <= newPathCost)
                     {
                         // yeah, the existed one is better, let's ignore this State
-                        delete newNode;
+
                         continue;
                     }
                     else
@@ -450,7 +458,7 @@ class AStarSearch
                 }
 
                 // remove existing Nodes that are worse
-                if ((*existedInOpen)->m_pathCost <= newPathCost)
+                if (existedInOpen != m_openNodes.end())
                 {
                     delete (*existedInOpen);
                     m_openNodes.erase(existedInOpen);
@@ -463,11 +471,15 @@ class AStarSearch
                 // newNode is the best so far compare to those having the same State
                 // add it to m_openNodes
                 m_openNodes.push_back(newNode);
+                m_states++;
                 // sort to remain the heap
                 push_heap(m_openNodes.begin(), m_openNodes.end(), HeapCompare_f());
             }
 
             m_closedNodes.push_back(bestNode);
+
+            cout << "------------ # open nodes: " << m_openNodes.size() << endl;
+            cout << "------------ # closed nodes: " << m_closedNodes.size() << endl;
         }
 
         return false;
