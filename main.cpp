@@ -14,6 +14,7 @@
  */
 
 #include <iostream>
+#include <algorithm>
 #include <vector>
 #include <fstream>
 #include <cmath>
@@ -131,10 +132,10 @@ class State
      *  Description:  Check to see if the passed in state is the same as this state
      * =====================================================================================
      */
-    bool IsSameState ( State* state )
+    bool IsSameState ( const State& state )
     {
         // std::vector can be deeply compare by using ==
-        return this->m_tiles == state->m_tiles;
+        return m_tiles == state.m_tiles;
     }   /* -----  end of function IsSameState  ----- */
 
 
@@ -176,7 +177,6 @@ class State
      */
     int HMisplacedTiles(const State& goalState)
     {
-        Print();
         int h = 0;
         for (int i = 0; i < m_tiles.size(); i++)
             if (m_tiles[i] != goalState.m_tiles[i])
@@ -194,7 +194,6 @@ class State
      */
     int HManhattanDistance(const State& goalState)
     {
-        Print();
         int h = 0;
         for (int i = 0; i < m_tiles.size(); i++)
             if (m_tiles[i] != goalState.m_tiles[i])
@@ -216,7 +215,6 @@ class State
      */
     int HCustom(const State& goalState)
     {
-        Print();
         int h = 0;
         for (int i = 0; i < m_tiles.size(); i++)
             if (m_tiles[i] != goalState.m_tiles[i])
@@ -246,9 +244,13 @@ class State
  */
 class Node
 {
+  private:
+
+
   public:
     State m_state;
     int   m_pathCost;  // also is the depth of the node
+    int   m_f;
 
     Node()
     {
@@ -262,9 +264,9 @@ class Node
         m_pathCost = pathCost;
     }
 
-    int F(const State& goalState)
+    void ComputeF(const State& goalState)
     {
-        return m_pathCost + m_state.H(goalState);
+        m_f = m_pathCost + m_state.H(goalState);
     }
 };
 
@@ -277,13 +279,23 @@ class Node
 class AStarSearch
 {
   public:
-    State* m_goalState;
+    State m_goalState;
     vector<Node*> m_openNodes;
     vector<Node*> m_closedNodes;
     int m_n;
     int m_k;
 
   private:
+
+    class HeapCompare_f
+	{
+		public:
+
+			bool operator() ( const Node *x, const Node *y ) const
+			{
+				return x->m_f > y->m_f;
+			}
+	};
 
     /*
      * ===  FUNCTION  ======================================================================
@@ -298,19 +310,12 @@ class AStarSearch
         int tile;
         vector<int> initTiles, goalTiles;
         ifstream fin(filename);
+        Node* startNode;
 
         // read n, k
         fin >> m_n;
         fin >> m_k;
         cout << "n = " << m_n << ", k = " << m_k << endl;
-
-        // read init state
-        for (int i =0; i < m_n*m_n; i++)
-        {
-            fin >> tile;
-            initTiles.push_back(tile);
-        }
-        m_openNodes.push_back(new Node(State(m_n, initTiles), 0));
 
         // read goal state
         for (int i =0; i < m_n*m_n; i++)
@@ -318,12 +323,34 @@ class AStarSearch
             fin >> tile;
             goalTiles.push_back(tile);
         }
-        m_goalState = new State(m_n, goalTiles);
+        m_goalState = State(m_n, goalTiles);
+
+        // read init state
+        for (int i =0; i < m_n*m_n; i++)
+        {
+            fin >> tile;
+            initTiles.push_back(tile);
+        }
+        startNode = new Node(State(m_n, initTiles), 0);
+        startNode->ComputeF(m_goalState);
+        m_openNodes.push_back(startNode);
+        // sort to make a heap
+        push_heap(m_openNodes.begin(), m_openNodes.end(), HeapCompare_f());
+
 
         fin.close();
 
         cout << "============ Finish reading file!" << endl;
     }   /* -----  end of function Input  ----- */
+
+    Node* IsExistedIn(State& state, const vector<Node*>& list)
+    {
+        for (int i = 0; i < list.size(); i++)
+            if (state.IsSameState(list[i]->m_state))
+                return list[i];
+
+        return NULL;
+    }
 
   public:
 
@@ -353,9 +380,6 @@ class AStarSearch
             delete m_closedNodes[i];
         }
         m_openNodes.clear();
-
-        cout << "Deleting goal state" << endl;
-        delete m_goalState;
     }
 
     /*
@@ -369,9 +393,38 @@ class AStarSearch
     {
         cout << "=========== Solving ===========" << endl;
 
+        vector<State> successors;
+        Node* existed;
+        Node* newNode;
+
         while(!m_openNodes.empty())
         {
+            successors.clear();
 
+            // get the node with the lowest F() value
+            Node *bestNode = m_openNodes.front();
+            pop_heap( m_openNodes.begin(), m_openNodes.end(), HeapCompare_f() );
+            m_openNodes.pop_back();
+
+            // is it the goal node?...
+            if (bestNode->m_state.IsSameState(m_goalState))
+                return true;
+
+            // ...if not
+
+            // generate its successors
+            bestNode->m_state.GenerateSuccessors(successors);
+            for (int i = 0; i < successors.size(); i++)
+            {
+                newNode = new Node(successors[i],bestNode->m_pathCost+1);
+                newNode->ComputeF(m_goalState);
+                // is it existed in m_openNodes?
+                existed = IsExistedIn(successors[i], m_openNodes);
+                if (existed != NULL)
+                {
+                    //if (existed->m_f > newNode->m_f)
+                }
+            }
         }
 
         return false;
@@ -383,7 +436,9 @@ class AStarSearch
 int main()
 {
     AStarSearch as = AStarSearch("input");
-    cout << as.m_openNodes[0]->F(*as.m_goalState) << endl;
+    as.m_goalState.Print();
+    as.Solve();
+
 
     cout << "=== GOODBYE ===" << endl;
     return 0;
