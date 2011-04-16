@@ -15,7 +15,7 @@
 
 #include <iostream>
 #include <algorithm>
-#include <vector>
+#include <map>
 #include <fstream>
 #include <cmath>
 
@@ -111,7 +111,7 @@ class State
 
   public:
 
-    State(const vector<int>& tiles):
+    State(const vector<int>& tiles)
     {
         m_tiles = tiles;
         //cout << "=== New State(const vector<int>& tiles)" << endl;
@@ -481,3 +481,4 @@ int main()
     cout << "=== GOODBYE ===" << endl;
     return 0;
 }
+
