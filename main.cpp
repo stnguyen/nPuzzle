@@ -93,7 +93,7 @@ class State
     /*
      * ===  FUNCTION  ======================================================================
      *         Name:  AddSuccessor
-     *  Description:  Add the generated successor by moving blank tile to the given vector
+     *  Description:  Take the move to create a new State, then add the State to vector
      * =====================================================================================
      */
     void AddSuccessor ( vector<State*>& successors, Move move )
@@ -109,12 +109,19 @@ class State
     }	/* -----  end of function AddSuccessor  ----- */
 
   public:
+
+    /*
+	 * ===  FUNCTION  ======================================================================
+	 *         Name:  SetTiles
+	 *  Description:  Set the tiles of this State, do a deep copy
+	 * =====================================================================================
+	 */
     void SetTiles(int* tiles)
     {
         m_tiles = new int[g_countTiles];
         for (int i = 0; i < g_countTiles; i++)
             m_tiles[i] = tiles[i];
-    }
+    }	/* -----  end of function SetTiles  ----- */
 
     State(int* tiles)
     {
@@ -137,7 +144,7 @@ class State
     /*
      * ===  FUNCTION  ======================================================================
      *         Name:  IsSameState
-     *  Description:  Check to see if the passed in state is the same as this state
+     *  Description:  Check to see if the passed in state is the same as this one
      * =====================================================================================
      */
     bool IsSameState ( const State& state ) const
@@ -154,13 +161,13 @@ class State
     /*
      * ===  FUNCTION  ======================================================================
      *         Name:  GenerateSuccessors
-     *  Description:  Generate all valid successors form this node
+     *  Description:  Generate all valid successors from this node
      * =====================================================================================
      */
     void GenerateSuccessors (vector<State*>& successors)
     {
         successors.clear();
-        // try 4 moves and get all possible succesors
+        // try 4 moves and get all possible successors
         if (m_parentAction != MOVE_DOWN) AddSuccessor(successors, MOVE_UP);
         if (m_parentAction != MOVE_UP) AddSuccessor(successors, MOVE_DOWN);
         if (m_parentAction != MOVE_RIGHT) AddSuccessor(successors, MOVE_LEFT);
@@ -231,7 +238,7 @@ class State
      */
     int HCustom(const State& goalState)
     {
-
+    	// TODO implements it
     }	/* -----  end of function HCustom  ----- */
 
     /*
@@ -256,21 +263,17 @@ class State
  *        Class:  Node
  *  Description:  A node in the search tree.
  *                Because this program does not return the solution path (if found),
- *                Parent Node are ommited to save memory.
+ *                the link to the parent node is ommited to save memory.
  * =====================================================================================
  */
 class Node
 {
-  private:
-
   public:
     State m_state;
     int   m_pathCost;  // also is the depth of the node
     int   m_f;
 
-    Node(State state, int pathCost): m_state(state), m_pathCost(pathCost)
-    {
-    }
+    Node(State state, int pathCost): m_state(state), m_pathCost(pathCost){}
 
     Node(): m_pathCost(0) {}
 
@@ -290,6 +293,14 @@ class Node
 class AStarSearch
 {
   private:
+
+	/*
+	 * =====================================================================================
+	 *        Class:  Compare_f
+	 *  Description:  A comparator, it first compare Nodes' estimated solution cost,
+	 *  			  then the Nodes' path costs are considered
+	 * =====================================================================================
+	 */
 	class Compare_f
 	{
 		public:
@@ -302,6 +313,12 @@ class AStarSearch
 			}
 	};
 
+	/*
+	 * =====================================================================================
+	 *        Class:  Compare_state
+	 *  Description:  A comparator, used to determine whether two Nodes have the same state
+	 * =====================================================================================
+	 */
 	class Compare_state
 	{
 		public:
@@ -317,12 +334,14 @@ class AStarSearch
 
   public:
     State m_goalState;
-    priority_queue<Node*, vector<Node*>, Compare_f> m_openNodes;
-    set<Node*, Compare_state> m_allNodes;		// set of closed nodes
+    priority_queue<Node*, vector<Node*>, Compare_f> m_openNodes;		// open nodes
+    set<Node*, Compare_state> m_allNodes;								// generated nodes
 
     AStarSearch(const State& goalState, Node& initNode): m_goalState(goalState)
     {
+    	// init node doesn't have parent
     	initNode.m_state.m_parentAction = NA;
+
         m_openNodes.push(&initNode);
         m_allNodes.insert(&initNode);
     }
@@ -341,18 +360,19 @@ class AStarSearch
      */
     int Solve()
     {
-        vector<State*> successors;
-        set<Node*>::iterator existed;
+        vector<State*> successors;		// temporary store successors
+        set<Node*>::iterator existed;	// check to see if the new node is already existed
         Node* newNode;
         int newPathCost;
 
         while(!m_openNodes.empty())
         {
+        	// delete all successors of existed
             for (int i = 0; i < successors.size(); i++)
                 delete successors[i];
             successors.clear();
 
-            // get the node with the lowest F() value
+            // get the best node, i.e., the one with the lowest F() value
             Node *bestNode = m_openNodes.top();
             m_openNodes.pop();
 
@@ -371,7 +391,7 @@ class AStarSearch
             {
             	newNode = new Node(*successors[i], newPathCost);
 
-                // REPEATED STATEA AVOIDANCE: is it existed in m_allNodes ?
+                // REPEATED STATE AVOIDANCE: is it existed in m_allNodes ?
             	existed = m_allNodes.find(newNode);
                 if (existed != m_allNodes.end())
                 {
