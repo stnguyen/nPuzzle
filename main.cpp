@@ -18,12 +18,15 @@
 #include <vector>
 #include <fstream>
 #include <cmath>
+#include <set>
+#include <ctime>
 
 using namespace std;
 
 int g_k;
 int g_n;
 int g_states;
+int g_countTiles;
 
 /*
  * =====================================================================================
@@ -33,8 +36,10 @@ int g_states;
  */
 class State
 {
+public:
+	int* m_tiles;
   private:
-    int* m_tiles;
+
     enum Move {MOVE_UP = -1, MOVE_DOWN = 1, MOVE_LEFT = -2, MOVE_RIGHT = 2};
 
     /*
@@ -45,7 +50,7 @@ class State
      */
     int GetBlankTilePosition ( )
     {
-        for (int i = 0; i < g_n*g_n; i++)
+        for (int i = 0; i < g_countTiles; i++)
             if (m_tiles[i] == 0)
                 return i;
     }	/* -----  end of function GetBlankTilePosition  ----- */
@@ -53,7 +58,7 @@ class State
     /*
      * ===  FUNCTION  ======================================================================
      *         Name:  MoveBlankTile
-     *  Description:  Move the blank tile on the passed in duplicatedTiles
+     *  Description:  Move the blank tile
      *                Return true if succeeded, false otherwise
      * =====================================================================================
      */
@@ -99,8 +104,8 @@ class State
   public:
     void SetTiles(int* tiles)
     {
-        m_tiles = new int[g_n*g_n];
-        for (int i = 0; i < g_n*g_n; i++)
+        m_tiles = new int[g_countTiles];
+        for (int i = 0; i < g_countTiles; i++)
             m_tiles[i] = tiles[i];
     }
 
@@ -114,16 +119,12 @@ class State
     State(const State& state)
     {
         SetTiles(state.m_tiles);
-        //cout << "=== New State(State&)" << endl;
-        //Print();
     }
 
     State(){}
 
     ~State()
     {
-        //cout << "=== Delete State" << endl;
-        //Print();
         delete[] m_tiles;
     }
 
@@ -134,9 +135,9 @@ class State
      *  Description:  Check to see if the passed in state is the same as this state
      * =====================================================================================
      */
-    bool IsSameState ( const State& state )
+    bool IsSameState ( const State& state ) const
     {
-        for (int i = 0; i < g_n*g_n; i++)
+        for (int i = 0; i < g_countTiles; i++)
             if (m_tiles[i] != state.m_tiles[i])
                 return false;
 
@@ -161,9 +162,15 @@ class State
         AddSuccessor(successors, MOVE_RIGHT);
     }	/* -----  end of function GenerateSuccessors  ----- */
 
+    /*
+	 * ===  FUNCTION  ======================================================================
+	 *         Name:  Print
+	 *  Description:  Print the state (FOR DEBUGGING ONLY)
+	 * =====================================================================================
+	 */
     void Print() const
     {
-        for (int i = 0; i < g_n*g_n; i++)
+        for (int i = 0; i < g_countTiles; i++)
         {
             if (i % g_n == 0)
                 cout << endl;
@@ -171,7 +178,7 @@ class State
         }
 
         cout << endl;
-    }
+    }	/* -----  end of function Print  ----- */
 
     /*
      * ===  FUNCTION  ======================================================================
@@ -182,12 +189,12 @@ class State
     int HMisplacedTiles(const State& goalState)
     {
         int h = 0;
-        for (int i = 0; i < g_n*g_n; i++)
+        for (int i = 0; i < g_countTiles; i++)
             if (m_tiles[i] != goalState.m_tiles[i])
                 h++;
 
         return h;
-    }
+    }	/* -----  end of function HMisplacedTiles  ----- */
 
     /*
      * ===  FUNCTION  ======================================================================
@@ -199,9 +206,9 @@ class State
     int HManhattanDistance(const State& goalState)
     {
         int h = 0;
-        for (int i = 0; i < g_n*g_n; i++)
+        for (int i = 0; i < g_countTiles; i++)
             if (m_tiles[i] != goalState.m_tiles[i])
-                for (int j = 0; j < g_n*g_n; j++)
+                for (int j = 0; j < g_countTiles; j++)
                     if (m_tiles[i] == goalState.m_tiles[j])
                     {
                         h += abs(float(i%g_n - j%g_n)) + abs(float(i/g_n - j/g_n));
@@ -209,7 +216,7 @@ class State
                     }
 
         return h;
-    }
+    }	/* -----  end of function HManhattanDistance  ----- */
 
     /*
      * ===  FUNCTION  ======================================================================
@@ -220,7 +227,7 @@ class State
     int HCustom(const State& goalState)
     {
 
-    }
+    }	/* -----  end of function HCustom  ----- */
 
     int H(const State& goalState)
     {
@@ -245,7 +252,6 @@ class Node
 {
   private:
 
-
   public:
     State m_state;
     int   m_pathCost;  // also is the depth of the node
@@ -253,7 +259,6 @@ class Node
 
     Node(State state, int pathCost): m_state(state), m_pathCost(pathCost)
     {
-        //cout << "New Node(State state, int pathCost)" << endl;
     }
 
     Node(): m_pathCost(0) {}
@@ -262,6 +267,28 @@ class Node
     {
         m_f = m_pathCost + m_state.H(goalState);
     }
+};
+
+class Compare_f
+{
+	public:
+		bool operator() ( const Node *x, const Node *y ) const
+		{
+			return x->m_f > y->m_f;
+		}
+};
+
+class Compare_state
+{
+	public:
+		bool operator() ( const Node* x, const Node* y ) const
+		{
+			for (int i = 0; i < g_countTiles; i++)
+				if (x->m_state.m_tiles[i] !=  y->m_state.m_tiles[i])
+					return x->m_state.m_tiles[i] < y->m_state.m_tiles[i];
+
+			return false;
+		}
 };
 
 /*
@@ -275,63 +302,49 @@ class AStarSearch
   public:
     State m_goalState;
     vector<Node*> m_openNodes;
-    vector<Node*> m_closedNodes;
-
-  private:
-
-    class HeapCompare_f
-	{
-		public:
-
-			bool operator() ( const Node *x, const Node *y ) const
-			{
-				return x->m_f > y->m_f;
-			}
-	};
-
-
-
-  public:
+    set<Node*, Compare_state> m_allNodes;		// set of closed nodes
 
     AStarSearch(const State& goalState, Node& initNode): m_goalState(goalState)
     {
         m_openNodes.push_back(&initNode);
         // sort to make a heap
-        push_heap(m_openNodes.begin(), m_openNodes.end(), HeapCompare_f());
+        push_heap(m_openNodes.begin(), m_openNodes.end(), Compare_f());
+
+        m_allNodes.insert(&initNode);
     }
 
     ~AStarSearch()
-    {
+    {/*
         cout << "Deleting " << m_openNodes.size() << " open nodes" << endl;
-        for (int i = 0; i < m_openNodes.size(); i++)
+        for (set<Node*>::iterator i = m_openNodes.begin(); i != m_openNodes.end(); i++)
         {
-            delete m_openNodes[i];
+            delete *i;
         }
 
-        m_openNodes.clear();
-
-        cout << "Deleting " << m_closedNodes.size() << " closed nodes" << endl;
-        for (int i = 0; i < m_closedNodes.size(); i++)
-        {
-            delete m_closedNodes[i];
-        }
-        m_openNodes.clear();
+        m_setOpenNode.clear();*/
+/*
+        cout << "Deleting " << m_allNodes.size() << " nodes" << endl;
+        int a = 1;
+		for (set<Node*>::iterator i = m_allNodes.begin(); i != m_allNodes.end(); i++)
+		{
+			cout << a << endl;
+			a++;
+			delete *i;
+		}
+        m_allNodes.clear();*/
     }
 
     /*
      * ===  FUNCTION  ======================================================================
      *         Name:  Solve
      *  Description:  Solve the puzzle using A* searching algorithm
-     *                Return true if found a solution, false otherwise
+     *                Return pathcost to the optimal solution, -1 if not solved
      * =====================================================================================
      */
-    bool Solve()
+    int Solve()
     {
-        cout << "=========== Solving ===========" << endl;
-
         vector<State*> successors;
-        vector<Node*>::iterator existedInOpen;
-        vector<Node*>::iterator existedInClosed;
+        set<Node*>::iterator existed;
         Node* newNode;
         int newPathCost;
 
@@ -343,98 +356,59 @@ class AStarSearch
 
             // get the node with the lowest F() value
             Node *bestNode = m_openNodes.front();
-            pop_heap( m_openNodes.begin(), m_openNodes.end(), HeapCompare_f() );
+            pop_heap( m_openNodes.begin(), m_openNodes.end(), Compare_f() );
             m_openNodes.pop_back();
 
-            //cout << "======= WORKING WITH ==========" << endl;
-            //bestNode->m_state.Print();
-
-            // is it the goal node?...
+            // FOUND solution if it is the goal node
             if (bestNode->m_state.IsSameState(m_goalState))
-            {
-                cout << "FOUND!!!!! HURRAAA :D" << endl;
-                cout << bestNode->m_pathCost << " " << g_states << endl;
-                return true;
-            }
+                return bestNode->m_pathCost;
 
             // ...if not
 
+            // generate its successors
             newPathCost = bestNode->m_pathCost+1;
-            //cout << "generate its successor States" << endl;
             bestNode->m_state.GenerateSuccessors(successors);
-            //cout << successors.size() << " successors generated" << endl;
 
             // check each successor State
             for (int i = 0; i < successors.size(); i++)
             {
-                //cout << "    checking ...." << endl;
-                //successors[i]->Print();
+            	newNode = new Node(*successors[i], newPathCost);
 
-                // is it existed in m_openNodes ?
-                for( existedInOpen = m_openNodes.begin(); existedInOpen != m_openNodes.end(); existedInOpen ++ )
-                    if (successors[i]->IsSameState((*existedInOpen)->m_state)) break;
-                if (existedInOpen != m_openNodes.end())
+                // is it existed in m_allNodes ?
+            	existed = m_allNodes.find(newNode);
+                if (existed != m_allNodes.end())
                 {
                     // is the existed one better ?
-                    if ((*existedInOpen)->m_pathCost <= newPathCost)
+                    if ((*existed)->m_pathCost <= newPathCost)
                     {
-                        // yeah, the existed one is better, let's ignore this State
-                        //cout << "    ...existed in open list!" << endl;
-                        continue;
-                    }
-                }
-
-                // is it existed in m_closedNodes ?
-                for( existedInClosed = m_closedNodes.begin(); existedInClosed != m_closedNodes.end(); existedInClosed ++ )
-                    if (successors[i]->IsSameState((*existedInClosed)->m_state)) break;
-                if (existedInClosed != m_closedNodes.end())
-                {
-                    // is the existed one better ?
-                    if ((*existedInClosed)->m_pathCost <= newPathCost)
-                    {
-                        // yeah, the existed one is better, let's ignore this State
-                        //cout << "    ...existed in closed list!" << endl;
+                        // yes, the existed node is better than the new one
                         continue;
                     }
                     else
                     {
-                        delete (*existedInClosed);
-                        m_closedNodes.erase(existedInClosed);
+                    	m_allNodes.erase(existed);
                     }
-                }
+                } else g_states++;
 
-                // remove existing Nodes that are worse
-                if (existedInOpen != m_openNodes.end())
-                {
-                    delete (*existedInOpen);
-                    m_openNodes.erase(existedInOpen);
-                    make_heap(m_openNodes.begin(), m_openNodes.end(), HeapCompare_f());
-                }
-
-                //cout << "    ...passed!" << endl;
-
-                // generate a Node with the corresponding State
-                newNode = new Node(*successors[i], newPathCost);
+                // it passed all the tests
                 newNode->ComputeF(m_goalState);
-                //cout << "    f = " << newNode->m_f << endl;
 
-                // newNode is the best so far compare to those having the same State
-                // add it to m_openNodes
                 m_openNodes.push_back(newNode);
-                g_states++;
                 // sort to remain the heap
-                push_heap(m_openNodes.begin(), m_openNodes.end(), HeapCompare_f());
+                push_heap(m_openNodes.begin(), m_openNodes.end(), Compare_f());
+
+                m_allNodes.insert(newNode);
             }
 
-            m_closedNodes.push_back(bestNode);
-            //cout << "# open nodes: " << m_openNodes.size() << endl;
-            //cout << "# open nodes: " << m_closedNodes.size() << endl;
-            if (g_states % 1000 == 0) cout << g_states << endl;
-            //if (g_states > 60 ) return false;
+
+            if ((g_n == 3 && g_states >= 250000) ||
+            	(g_n == 4 && g_states >= 600000) ||
+            	(g_n >= 5 && g_states >= 1000000))
+            	return -1;
         }
 
-        return false;
-        cout << "=========== Finished Solving ===========" << endl;
+        return -1;
+
     }   /* -----  end of function Solve  ----- */
 };
 
@@ -455,23 +429,25 @@ void Input(char* filename, State& goalState, Node& initNode)
     ifstream fin(filename);
 
     // read n, k
-    fin >> g_n;
+    fin >> g_countTiles;
+    g_countTiles++;
     fin >> g_k;
+    g_n = sqrt(g_countTiles);
     cout << "n = " << g_n << ", k = " << g_k << endl;
 
     // allocate memory
-    initTiles = new int[g_n*g_n];
-    goalTiles = new int[g_n*g_n];
+    initTiles = new int[g_countTiles];
+    goalTiles = new int[g_countTiles];
 
     // read init tiles
-    for (int i = 0; i < g_n*g_n; i++)
+    for (int i = 0; i < g_countTiles; i++)
     {
         fin >> tile;
         initTiles[i] = tile;
     }
 
     // read goal tiles
-    for (int i =0; i < g_n*g_n; i++)
+    for (int i =0; i < g_countTiles; i++)
     {
         fin >> tile;
         goalTiles[i] = tile;
@@ -496,15 +472,23 @@ int main()
 {
     State goalState;
     Node  initNode;
+    int result;
     Input("input", goalState, initNode);
+
     AStarSearch as = AStarSearch(goalState, initNode);
 
+
+    time_t tstart, tend;
     cout << "START STATE:";
     as.m_openNodes.front()->m_state.Print();
-    as.Solve();
+    tstart = time(0);
+    cout << "=========== Solving ===========" << endl;
+    result = as.Solve();
+    cout << "=========== Finished Solving ===========" << endl;
+    tend = time(0);
+    cout << "It took " << difftime(tend, tstart) << " second(s)." << endl;
 
-
-    cout << "=== GOODBYE ===" << endl;
+    cout << "=== RESULT ===" << endl;
+    cout << result << " " << g_states << endl;
     return 0;
 }
-
