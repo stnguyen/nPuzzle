@@ -473,7 +473,7 @@ int main()
     State goalState;
     Node  initNode;
     int result;
-    Input("input", goalState, initNode);
+    Input("nPuzzle.inp", goalState, initNode);
 
     AStarSearch as = AStarSearch(goalState, initNode);
 
