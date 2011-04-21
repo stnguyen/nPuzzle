@@ -175,24 +175,6 @@ class State
     }	/* -----  end of function GenerateSuccessors  ----- */
 
     /*
-	 * ===  FUNCTION  ======================================================================
-	 *         Name:  Print
-	 *  Description:  Print the state (FOR DEBUGGING ONLY)
-	 * =====================================================================================
-	 */
-    void Print() const
-    {
-        for (int i = 0; i < g_countTiles; i++)
-        {
-            if (i % g_n == 0)
-                cout << endl;
-            cout << m_tiles[i] << " ";
-        }
-
-        cout << endl;
-    }	/* -----  end of function Print  ----- */
-
-    /*
      * ===  FUNCTION  ======================================================================
      *         Name:  HMisplacedTiles
      *  Description:  H1 - Calculate heuristic = the number of misplaced tiles
@@ -446,9 +428,7 @@ class AStarSearch
  */
 void Input(char* filename, State& goalState, Node& initNode)
 {
-    cout << "=========== Reading file: " << filename << "..." << endl;
-
-    int tile;
+	int tile;
     int* initTiles;
     int* goalTiles;
     ifstream fin(filename);
@@ -458,7 +438,6 @@ void Input(char* filename, State& goalState, Node& initNode)
     g_countTiles++;
     fin >> g_k;
     g_n = sqrt(g_countTiles);
-    cout << "n = " << g_n << ", k = " << g_k << endl;
 
     // allocate memory
     initTiles = new int[g_countTiles];
@@ -489,8 +468,6 @@ void Input(char* filename, State& goalState, Node& initNode)
     delete[] initTiles;
     delete[] goalTiles;
     fin.close();
-
-    cout << "============ Finish reading file!" << endl;
 }   /* -----  end of function Input  ----- */
 
 /*
@@ -511,19 +488,10 @@ int main()
     State goalState;
     Node  initNode;
     int result;
+
     Input("nPuzzle.inp", goalState, initNode);
     AStarSearch as = AStarSearch(goalState, initNode);
-
-
-    time_t tstart, tend;
-    cout << "START STATE:";
-    as.m_openNodes.top()->m_state.Print();
-    tstart = time(0);
     result = as.Solve();
-    tend = time(0);
-    cout << "It took " << difftime(tend, tstart) << " second(s)." << endl;
-
-    cout << result << " " << g_states << endl;
     Output("nPuzzle.out", result, g_states);
 
     return 0;
