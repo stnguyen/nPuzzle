@@ -483,7 +483,7 @@ void Input(char* filename, State& goalState, Node& initNode)
     initNode.m_state.SetTiles(initTiles);
     initNode.ComputeF(goalState);
 
-    g_states = 0;
+    g_states = 1;
 
 
     delete[] initTiles;

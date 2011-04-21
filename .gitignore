@@ -4,3 +4,4 @@ obj
 *.layout
 main*
 *.depend
+._*
