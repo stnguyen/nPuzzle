@@ -28,6 +28,7 @@ int g_k;
 int g_n;
 int g_states;
 int g_countTiles;
+enum Move {MOVE_UP = -1, MOVE_DOWN = 1, MOVE_LEFT = -2, MOVE_RIGHT = 2};
 
 /*
  * =====================================================================================
@@ -40,9 +41,6 @@ class State
 public:
 	int* m_tiles;
   private:
-
-    enum Move {MOVE_UP = -1, MOVE_DOWN = 1, MOVE_LEFT = -2, MOVE_RIGHT = 2};
-
     /*
      * ===  FUNCTION  ======================================================================
      *         Name:  GetBlankTilePosition
@@ -270,27 +268,6 @@ class Node
     }
 };
 
-class Compare_f
-{
-	public:
-		bool operator() ( const Node *x, const Node *y ) const
-		{
-			return x->m_f > y->m_f;
-		}
-};
-
-class Compare_state
-{
-	public:
-		bool operator() ( const Node* x, const Node* y ) const
-		{
-			for (int i = 0; i < g_countTiles; i++)
-				if (x->m_state.m_tiles[i] !=  y->m_state.m_tiles[i])
-					return x->m_state.m_tiles[i] < y->m_state.m_tiles[i];
-
-			return false;
-		}
-};
 
 /*
  * =====================================================================================
@@ -300,6 +277,28 @@ class Compare_state
  */
 class AStarSearch
 {
+  private:
+	class Compare_f
+	{
+		public:
+			bool operator() ( const Node *x, const Node *y ) const
+			{
+				return x->m_f > y->m_f;
+			}
+	};
+
+	class Compare_state
+	{
+		public:
+			bool operator() ( const Node* x, const Node* y ) const
+			{
+				for (int i = 0; i < g_countTiles; i++)
+					if (x->m_state.m_tiles[i] !=  y->m_state.m_tiles[i])
+						return x->m_state.m_tiles[i] < y->m_state.m_tiles[i];
+
+				return false;
+			}
+	};
   public:
     State m_goalState;
     priority_queue<Node*, vector<Node*>, Compare_f> m_openNodes;
