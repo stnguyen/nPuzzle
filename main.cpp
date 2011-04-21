@@ -28,7 +28,7 @@ int g_k;
 int g_n;
 int g_states;
 int g_countTiles;
-enum Move {MOVE_UP = -1, MOVE_DOWN = 1, MOVE_LEFT = -2, MOVE_RIGHT = 2};
+enum Move {MOVE_UP = -1, MOVE_DOWN = 1, MOVE_LEFT = -2, MOVE_RIGHT = 2, NA = 0};
 
 /*
  * =====================================================================================
@@ -38,8 +38,9 @@ enum Move {MOVE_UP = -1, MOVE_DOWN = 1, MOVE_LEFT = -2, MOVE_RIGHT = 2};
  */
 class State
 {
-public:
+  public:
 	int* m_tiles;
+    Move  m_parentAction;
   private:
     /*
      * ===  FUNCTION  ======================================================================
@@ -95,7 +96,10 @@ public:
     {
         State* newState = new State(m_tiles);
         if (newState->MoveBlankTile(move))
+        {
+        	newState->m_parentAction = move;
             successors.push_back(newState);
+        }
         else
             delete newState;
     }	/* -----  end of function AddSuccessor  ----- */
@@ -155,10 +159,10 @@ public:
     {
         successors.clear();
         // try 4 moves and get all possible succesors
-        AddSuccessor(successors, MOVE_UP);
-        AddSuccessor(successors, MOVE_DOWN);
-        AddSuccessor(successors, MOVE_LEFT);
-        AddSuccessor(successors, MOVE_RIGHT);
+        if (m_parentAction != MOVE_DOWN) AddSuccessor(successors, MOVE_UP);
+        if (m_parentAction != MOVE_UP) AddSuccessor(successors, MOVE_DOWN);
+        if (m_parentAction != MOVE_RIGHT) AddSuccessor(successors, MOVE_LEFT);
+        if (m_parentAction != MOVE_LEFT) AddSuccessor(successors, MOVE_RIGHT);
     }	/* -----  end of function GenerateSuccessors  ----- */
 
     /*
@@ -306,6 +310,7 @@ class AStarSearch
 
     AStarSearch(const State& goalState, Node& initNode): m_goalState(goalState)
     {
+    	initNode.m_state.m_parentAction = NA;
         m_openNodes.push(&initNode);
         m_allNodes.insert(&initNode);
     }
