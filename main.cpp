@@ -231,14 +231,25 @@ class State
     }	/* -----  end of function HManhattanDistance  ----- */
 
     /*
-     * ===  FUNCTION  ======================================================================
+     * ===  FUNCTION  =======================================================================
      *         Name:  HCustom
-     *  Description:  H3 - Calculate heuristic = ...
-     * =====================================================================================
+     *  Description:  H3 - Calculate heuristic = the sum of the FLYING distances of the tiles
+     *                from their goal positions
+     * ======================================================================================
      */
     int HCustom(const State& goalState)
     {
-    	// TODO implements it
+    	int h = 0;
+		for (int i = 0; i < g_countTiles; i++)
+			if (m_tiles[i] != 0 && m_tiles[i] != goalState.m_tiles[i])
+				for (int j = 0; j < g_countTiles; j++)
+					if (m_tiles[i] == goalState.m_tiles[j])
+					{
+						h += sqrt((i%g_n - j%g_n)*(i%g_n - j%g_n) + (i/g_n - j/g_n)*(i/g_n - j/g_n));
+						break;
+					}
+
+		return h;
     }	/* -----  end of function HCustom  ----- */
 
     /*
@@ -253,7 +264,7 @@ class State
             return HMisplacedTiles(goalState);
         else if (g_k == 2)
             return HManhattanDistance(goalState);
-        else
+        else if (g_k == 3)
             return HCustom(goalState);
     }	/* -----  end of function H  ----- */
 };
@@ -501,7 +512,6 @@ int main()
     Node  initNode;
     int result;
     Input("nPuzzle.inp", goalState, initNode);
-
     AStarSearch as = AStarSearch(goalState, initNode);
 
 
