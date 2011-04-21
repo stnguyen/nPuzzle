@@ -394,11 +394,12 @@ class AStarSearch
                 m_allNodes.insert(newNode);
             }
 
-
+            /*
             if ((g_n == 3 && g_states >= 250000) ||
             	(g_n == 4 && g_states >= 600000) ||
             	(g_n >= 5 && g_states >= 1000000))
             	return -1;
+            */
         }
 
         return -1;
