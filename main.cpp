@@ -287,7 +287,10 @@ class AStarSearch
 		public:
 			bool operator() ( const Node *x, const Node *y ) const
 			{
-				return x->m_f > y->m_f;
+ 				 if (x->m_f == y->m_f)
+					 return x->m_pathCost < y->m_pathCost;
+				 else
+					 return x->m_f > y->m_f;
 			}
 	};
 
