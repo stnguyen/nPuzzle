@@ -4,11 +4,13 @@
  *       Filename:  main.cpp
  *
  *    Description:  Solve n-Puzzle using A* search algorithm
- *                  Assignment 01 - course AI, UET, VNU
+ *                  Assignment 01 - course AI
  *
- *        Created:  04/13/2011 01:10:36 AM
+ *        Started:  04/13/2011 01:10:36 AM
+ *       Finished:  04/21/2011 10:15:36 PM
  *
  *         Author:  Nguyen Son Tung (sontung23@gmail.com)
+ *          Class:  K53CA, UET, VNU
  *
  * =====================================================================================
  */
@@ -24,10 +26,11 @@
 
 using namespace std;
 
-int g_k;
-int g_n;
-int g_states;
-int g_countTiles;
+int g_k;			// which heuristic function is used
+int g_n;			// n-Puzzle
+int g_countTiles;	// number of tiles, including the blank one. If n == 3 then countTiles == 9
+int g_states;		// count generated states
+
 enum Move {MOVE_UP = -1, MOVE_DOWN = 1, MOVE_LEFT = -2, MOVE_RIGHT = 2, NA = 0};
 
 /*
@@ -41,6 +44,7 @@ class State
   public:
 	int* m_tiles;
     Move  m_parentAction;
+
   private:
     /*
      * ===  FUNCTION  ======================================================================
@@ -115,8 +119,6 @@ class State
     State(int* tiles)
     {
         SetTiles(tiles);
-        //cout << "=== New State(int* tiles)" << endl;
-        //Print();
     }
 
     State(const State& state)
@@ -186,7 +188,7 @@ class State
     /*
      * ===  FUNCTION  ======================================================================
      *         Name:  HMisplacedTiles
-     *  Description:  Calculate heuristic = the number of misplaced tiles
+     *  Description:  H1 - Calculate heuristic = the number of misplaced tiles
      * =====================================================================================
      */
     int HMisplacedTiles(const State& goalState)
@@ -202,7 +204,7 @@ class State
     /*
      * ===  FUNCTION  ======================================================================
      *         Name:  HManhattanDistance
-     *  Description:  Calculate heuristic = the sum of the distances of the tiles
+     *  Description:  H2 - Calculate heuristic = the sum of the distances of the tiles
      *                from their goal positions
      * =====================================================================================
      */
@@ -224,7 +226,7 @@ class State
     /*
      * ===  FUNCTION  ======================================================================
      *         Name:  HCustom
-     *  Description:  Calculate heuristic = ...
+     *  Description:  H3 - Calculate heuristic = ...
      * =====================================================================================
      */
     int HCustom(const State& goalState)
@@ -232,6 +234,12 @@ class State
 
     }	/* -----  end of function HCustom  ----- */
 
+    /*
+	 * ===  FUNCTION  ======================================================================
+	 *         Name:  H
+	 *  Description:  Calculate heuristic
+	 * =====================================================================================
+	 */
     int H(const State& goalState)
     {
         if (g_k == 1)
@@ -240,7 +248,7 @@ class State
             return HManhattanDistance(goalState);
         else
             return HCustom(goalState);
-    }
+    }	/* -----  end of function H  ----- */
 };
 
 /*
@@ -248,7 +256,7 @@ class State
  *        Class:  Node
  *  Description:  A node in the search tree.
  *                Because this program does not return the solution path (if found),
- *                components such as Action, Parent Node are ommited to save memory.
+ *                Parent Node are ommited to save memory.
  * =====================================================================================
  */
 class Node
@@ -306,6 +314,7 @@ class AStarSearch
 				return false;
 			}
 	};
+
   public:
     State m_goalState;
     priority_queue<Node*, vector<Node*>, Compare_f> m_openNodes;
@@ -319,24 +328,8 @@ class AStarSearch
     }
 
     ~AStarSearch()
-    {/*
-        cout << "Deleting " << m_openNodes.size() << " open nodes" << endl;
-        for (set<Node*>::iterator i = m_openNodes.begin(); i != m_openNodes.end(); i++)
-        {
-            delete *i;
-        }
-
-        m_setOpenNode.clear();*/
-/*
-        cout << "Deleting " << m_allNodes.size() << " nodes" << endl;
-        int a = 1;
-		for (set<Node*>::iterator i = m_allNodes.begin(); i != m_allNodes.end(); i++)
-		{
-			cout << a << endl;
-			a++;
-			delete *i;
-		}
-        m_allNodes.clear();*/
+    {
+    	// no need to deallocate resources, this program is going to quit anyway...
     }
 
     /*
@@ -378,7 +371,7 @@ class AStarSearch
             {
             	newNode = new Node(*successors[i], newPathCost);
 
-                // is it existed in m_allNodes ?
+                // REPEATED STATEA AVOIDANCE: is it existed in m_allNodes ?
             	existed = m_allNodes.find(newNode);
                 if (existed != m_allNodes.end())
                 {
@@ -394,19 +387,18 @@ class AStarSearch
                     }
                 } else g_states++;
 
-                // it passed all the tests
+                // it passed the test
                 newNode->ComputeF(m_goalState);
 
                 m_openNodes.push(newNode);
                 m_allNodes.insert(newNode);
             }
 
-            /*
+            // limitation as described on BBC
             if ((g_n == 3 && g_states >= 250000) ||
             	(g_n == 4 && g_states >= 600000) ||
             	(g_n >= 5 && g_states >= 1000000))
             	return -1;
-            */
         }
 
         return -1;
@@ -470,6 +462,19 @@ void Input(char* filename, State& goalState, Node& initNode)
     cout << "============ Finish reading file!" << endl;
 }   /* -----  end of function Input  ----- */
 
+/*
+ * ===  FUNCTION  ======================================================================
+ *         Name:  Output
+ *  Description:  Write to output file
+ * =====================================================================================
+ */
+void Output(char* filename, int optimalCost, int generatedStates)
+{
+	ofstream fout(filename);
+	fout << optimalCost << " " << generatedStates << endl;
+	fout.close();
+}	/* -----  end of function Output  ----- */
+
 int main()
 {
     State goalState;
@@ -484,13 +489,12 @@ int main()
     cout << "START STATE:";
     as.m_openNodes.top()->m_state.Print();
     tstart = time(0);
-    cout << "=========== Solving ===========" << endl;
     result = as.Solve();
-    cout << "=========== Finished Solving ===========" << endl;
     tend = time(0);
     cout << "It took " << difftime(tend, tstart) << " second(s)." << endl;
 
-    cout << "=== RESULT ===" << endl;
     cout << result << " " << g_states << endl;
+    Output("nPuzzle.out", result, g_states);
+
     return 0;
 }
