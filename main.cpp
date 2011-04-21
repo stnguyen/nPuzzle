@@ -189,7 +189,7 @@ public:
     {
         int h = 0;
         for (int i = 0; i < g_countTiles; i++)
-            if (m_tiles[i] != goalState.m_tiles[i])
+            if (m_tiles[i] != 0 && m_tiles[i] != goalState.m_tiles[i])
                 h++;
 
         return h;
@@ -206,7 +206,7 @@ public:
     {
         int h = 0;
         for (int i = 0; i < g_countTiles; i++)
-            if (m_tiles[i] != goalState.m_tiles[i])
+            if (m_tiles[i] != 0 && m_tiles[i] != goalState.m_tiles[i])
                 for (int j = 0; j < g_countTiles; j++)
                     if (m_tiles[i] == goalState.m_tiles[j])
                     {
