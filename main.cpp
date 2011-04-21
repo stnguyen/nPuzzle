@@ -20,6 +20,7 @@
 #include <cmath>
 #include <set>
 #include <ctime>
+#include <queue>
 
 using namespace std;
 
@@ -301,15 +302,12 @@ class AStarSearch
 {
   public:
     State m_goalState;
-    vector<Node*> m_openNodes;
+    priority_queue<Node*, vector<Node*>, Compare_f> m_openNodes;
     set<Node*, Compare_state> m_allNodes;		// set of closed nodes
 
     AStarSearch(const State& goalState, Node& initNode): m_goalState(goalState)
     {
-        m_openNodes.push_back(&initNode);
-        // sort to make a heap
-        push_heap(m_openNodes.begin(), m_openNodes.end(), Compare_f());
-
+        m_openNodes.push(&initNode);
         m_allNodes.insert(&initNode);
     }
 
@@ -355,9 +353,8 @@ class AStarSearch
             successors.clear();
 
             // get the node with the lowest F() value
-            Node *bestNode = m_openNodes.front();
-            pop_heap( m_openNodes.begin(), m_openNodes.end(), Compare_f() );
-            m_openNodes.pop_back();
+            Node *bestNode = m_openNodes.top();
+            m_openNodes.pop();
 
             // FOUND solution if it is the goal node
             if (bestNode->m_state.IsSameState(m_goalState))
@@ -393,10 +390,7 @@ class AStarSearch
                 // it passed all the tests
                 newNode->ComputeF(m_goalState);
 
-                m_openNodes.push_back(newNode);
-                // sort to remain the heap
-                push_heap(m_openNodes.begin(), m_openNodes.end(), Compare_f());
-
+                m_openNodes.push(newNode);
                 m_allNodes.insert(newNode);
             }
 
@@ -480,7 +474,7 @@ int main()
 
     time_t tstart, tend;
     cout << "START STATE:";
-    as.m_openNodes.front()->m_state.Print();
+    as.m_openNodes.top()->m_state.Print();
     tstart = time(0);
     cout << "=========== Solving ===========" << endl;
     result = as.Solve();
