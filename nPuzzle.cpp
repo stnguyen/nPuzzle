@@ -1,7 +1,7 @@
 /*
  * =====================================================================================
  *
- *       Filename:  main.cpp
+ *       Filename:  nPuzzle.cpp
  *
  *    Description:  Solve n-Puzzle using A* search algorithm
  *                  Assignment 01 - course AI
